@@ -879,6 +879,24 @@ new g_cached_customflash, g_cached_zombiesilent, Float:g_cached_humanspd, Float:
 Float:g_cached_survspd, g_cached_leapzombies, Float:g_cached_leapzombiescooldown, g_cached_leapnemesis,
 Float:g_cached_leapnemesiscooldown, g_cached_leapsurvivor, Float:g_cached_leapsurvivorcooldown
 
+// Forward declarations required by AMX Mod X 1.8.x compilers
+forward load_customization_from_files();
+forward native_register_extra_item2(const name[], cost, team);
+forward fm_set_kvd(entity, const key[], const value[], const classname[]);
+forward load_spawns();
+forward save_customization();
+forward fm_cs_get_user_team(id);
+forward save_stats(id);
+forward ambience_sound_stop();
+forward fnGetZombies();
+forward PlaySound(const sound[]);
+forward fnGetHumans();
+forward balance_teams();
+forward do_random_spawn(id, regularspawns);
+forward reset_vars(id, resetall);
+forward fm_set_user_health(id, health);
+forward fm_cs_set_user_team(id, team);
+
 /*================================================================================
  [Natives, Precache and Init]
 =================================================================================*/
@@ -1047,7 +1065,7 @@ public plugin_precache()
 	// Load customization data
 	load_customization_from_files()
 	
-	new i, buffer[100]
+	new i, buffer[100], buffer2[100]
 	
 	// Load up the hard coded extra items
 	native_register_extra_item2("NightVision", g_extra_costs2[EXTRA_NVISION], ZP_TEAM_HUMAN)
@@ -1066,7 +1084,8 @@ public plugin_precache()
 	for (i = 0; i < ArraySize(model_human); i++)
 	{
 		ArrayGetString(model_human, i, buffer, charsmax(buffer))
-		format(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer, buffer)
+		copy(buffer2, charsmax(buffer2), buffer)
+		formatex(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer2, buffer2)
 		ArrayPushCell(g_modelindex_human, engfunc(EngFunc_PrecacheModel, buffer))
 		if (g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, buffer)
 		if (g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, buffer)
@@ -1074,7 +1093,8 @@ public plugin_precache()
 	for (i = 0; i < ArraySize(model_nemesis); i++)
 	{
 		ArrayGetString(model_nemesis, i, buffer, charsmax(buffer))
-		format(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer, buffer)
+		copy(buffer2, charsmax(buffer2), buffer)
+		formatex(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer2, buffer2)
 		ArrayPushCell(g_modelindex_nemesis, engfunc(EngFunc_PrecacheModel, buffer))
 		if (g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, buffer)
 		if (g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, buffer)
@@ -1082,7 +1102,8 @@ public plugin_precache()
 	for (i = 0; i < ArraySize(model_survivor); i++)
 	{
 		ArrayGetString(model_survivor, i, buffer, charsmax(buffer))
-		format(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer, buffer)
+		copy(buffer2, charsmax(buffer2), buffer)
+		formatex(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer2, buffer2)
 		ArrayPushCell(g_modelindex_survivor, engfunc(EngFunc_PrecacheModel, buffer))
 		if (g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, buffer)
 		if (g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, buffer)
@@ -1090,7 +1111,8 @@ public plugin_precache()
 	for (i = 0; i < ArraySize(model_admin_zombie); i++)
 	{
 		ArrayGetString(model_admin_zombie, i, buffer, charsmax(buffer))
-		format(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer, buffer)
+		copy(buffer2, charsmax(buffer2), buffer)
+		formatex(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer2, buffer2)
 		ArrayPushCell(g_modelindex_admin_zombie, engfunc(EngFunc_PrecacheModel, buffer))
 		if (g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, buffer)
 		if (g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, buffer)
@@ -1098,7 +1120,8 @@ public plugin_precache()
 	for (i = 0; i < ArraySize(model_admin_human); i++)
 	{
 		ArrayGetString(model_admin_human, i, buffer, charsmax(buffer))
-		format(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer, buffer)
+		copy(buffer2, charsmax(buffer2), buffer)
+		formatex(buffer, charsmax(buffer), "models/player/%s/%s.mdl", buffer2, buffer2)
 		ArrayPushCell(g_modelindex_admin_human, engfunc(EngFunc_PrecacheModel, buffer))
 		if (g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, buffer)
 		if (g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, buffer)
@@ -1283,7 +1306,8 @@ public plugin_precache()
 			
 			if (ArrayGetCell(sound_ambience1_ismp3, i))
 			{
-				format(buffer, charsmax(buffer), "sound/%s", buffer)
+				copy(buffer2, charsmax(buffer2), buffer)
+				formatex(buffer, charsmax(buffer), "sound/%s", buffer2)
 				engfunc(EngFunc_PrecacheGeneric, buffer)
 			}
 			else
@@ -1300,7 +1324,8 @@ public plugin_precache()
 			
 			if (ArrayGetCell(sound_ambience2_ismp3, i))
 			{
-				format(buffer, charsmax(buffer), "sound/%s", buffer)
+				copy(buffer2, charsmax(buffer2), buffer)
+				formatex(buffer, charsmax(buffer), "sound/%s", buffer2)
 				engfunc(EngFunc_PrecacheGeneric, buffer)
 			}
 			else
@@ -1317,7 +1342,8 @@ public plugin_precache()
 			
 			if (ArrayGetCell(sound_ambience3_ismp3, i))
 			{
-				format(buffer, charsmax(buffer), "sound/%s", buffer)
+				copy(buffer2, charsmax(buffer2), buffer)
+				formatex(buffer, charsmax(buffer), "sound/%s", buffer2)
 				engfunc(EngFunc_PrecacheGeneric, buffer)
 			}
 			else
@@ -1334,7 +1360,8 @@ public plugin_precache()
 			
 			if (ArrayGetCell(sound_ambience4_ismp3, i))
 			{
-				format(buffer, charsmax(buffer), "sound/%s", buffer)
+				copy(buffer2, charsmax(buffer2), buffer)
+				formatex(buffer, charsmax(buffer), "sound/%s", buffer2)
 				engfunc(EngFunc_PrecacheGeneric, buffer)
 			}
 			else
@@ -1351,7 +1378,8 @@ public plugin_precache()
 			
 			if (ArrayGetCell(sound_ambience5_ismp3, i))
 			{
-				format(buffer, charsmax(buffer), "sound/%s", buffer)
+				copy(buffer2, charsmax(buffer2), buffer)
+				formatex(buffer, charsmax(buffer), "sound/%s", buffer2)
 				engfunc(EngFunc_PrecacheGeneric, buffer)
 			}
 			else
@@ -2041,7 +2069,7 @@ public fw_PlayerSpawn_Post(id)
 	remove_task(id+TASK_NVISION)
 	
 	// Spawn at a random location?
-	if (get_pcvar_num(cvar_randspawn)) do_random_spawn(id)
+	if (get_pcvar_num(cvar_randspawn)) do_random_spawn(id, 0)
 	
 	// Hide money?
 	if (get_pcvar_num(cvar_removemoney))
@@ -3924,7 +3952,7 @@ public menu_game(id, key)
 				{
 					// Move to an initial spawn
 					if (get_pcvar_num(cvar_randspawn))
-						do_random_spawn(id) // random spawn (including CSDM)
+						do_random_spawn(id, 0) // random spawn (including CSDM)
 					else
 						do_random_spawn(id, 1) // regular spawn
 				}
@@ -5681,17 +5709,18 @@ zombieme(id, infector, nemesis, silentmode, rewards)
 			// Show Infection HUD notice
 			set_hudmessage(255, 0, 0, HUD_INFECT_X, HUD_INFECT_Y, 0, 0.0, 5.0, 1.0, 1.0, -1)
 			
-if (infector)
-{
-    ShowSyncHudMsg(0, g_MsgSync, "%s infected %s",
-        g_playername[infector],
-        g_playername[id]);
-}
-else
-{
-    ShowSyncHudMsg(0, g_MsgSync, "%s became a zombie",
-        g_playername[id]);
-}
+			if (infector)
+			{
+				ShowSyncHudMsg(0, g_MsgSync, "%s infected %s", g_playername[infector], g_playername[id])
+			}
+			else
+			{
+				ShowSyncHudMsg(0, g_MsgSync, "%s became a zombie", g_playername[id])
+			}
+		}
+	}
+	else
+	{
 		// Silent mode, no HUD messages, no infection sounds
 		
 		// Set health and gravity, unless frozen
@@ -6203,12 +6232,13 @@ public cache_cvars()
 	g_cached_leapsurvivorcooldown = get_pcvar_float(cvar_leapsurvivorcooldown)
 }
 
-load_customization_from_files()
+public load_customization_from_files()
 {
 	// Build customization file path
 	new path[64]
 	get_configsdir(path, charsmax(path))
-	format(path, charsmax(path), "%s/%s", path, ZP_CUSTOMIZATION_FILE)
+	add(path, charsmax(path), "/")
+	add(path, charsmax(path), ZP_CUSTOMIZATION_FILE)
 	
 	// File not present
 	if (!file_exists(path))
@@ -7313,14 +7343,15 @@ load_customization_from_files()
 	}
 }
 
-save_customization()
+public save_customization()
 {
-	new i, k, buffer[512]
+	new i, k, buffer[512], buffer2[512]
 	
 	// Build zombie classes file path
 	new path[64]
 	get_configsdir(path, charsmax(path))
-	format(path, charsmax(path), "%s/%s", path, ZP_ZOMBIECLASSES_FILE)
+	add(path, charsmax(path), "/")
+	add(path, charsmax(path), ZP_ZOMBIECLASSES_FILE)
 	
 	// Open zombie classes file for appending data
 	new file = fopen(path, "at"), size = ArraySize(g_zclass_name)
@@ -7332,17 +7363,20 @@ save_customization()
 		{
 			// Add real name
 			ArrayGetString(g_zclass_name, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^n[%s]", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^n[%s]", buffer2)
 			fputs(file, buffer)
 			
 			// Add caption
 			ArrayGetString(g_zclass_name, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^nNAME = %s", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^nNAME = %s", buffer2)
 			fputs(file, buffer)
 			
 			// Add info
 			ArrayGetString(g_zclass_info, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^nINFO = %s", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^nINFO = %s", buffer2)
 			fputs(file, buffer)
 			
 			// Add models
@@ -7357,15 +7391,18 @@ save_customization()
 				{
 					// Successive models, append to buffer
 					ArrayGetString(g_zclass_playermodel, k, path, charsmax(path))
-					format(buffer, charsmax(buffer), "%s , %s", buffer, path)
+					copy(buffer2, charsmax(buffer2), buffer)
+					formatex(buffer, charsmax(buffer), "%s , %s", buffer2, path)
 				}
 			}
-			format(buffer, charsmax(buffer), "^nMODELS = %s", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^nMODELS = %s", buffer2)
 			fputs(file, buffer)
 			
 			// Add clawmodel
 			ArrayGetString(g_zclass_clawmodel, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^nCLAWMODEL = %s", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^nCLAWMODEL = %s", buffer2)
 			fputs(file, buffer)
 			
 			// Add health
@@ -7389,7 +7426,8 @@ save_customization()
 	
 	// Build extra items file path
 	get_configsdir(path, charsmax(path))
-	format(path, charsmax(path), "%s/%s", path, ZP_EXTRAITEMS_FILE)
+	add(path, charsmax(path), "/")
+	add(path, charsmax(path), ZP_EXTRAITEMS_FILE)
 	
 	// Open extra items file for appending data
 	file = fopen(path, "at")
@@ -7402,12 +7440,14 @@ save_customization()
 		{
 			// Add real name
 			ArrayGetString(g_extraitem_name, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^n[%s]", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^n[%s]", buffer2)
 			fputs(file, buffer)
 			
 			// Add caption
 			ArrayGetString(g_extraitem_name, i, buffer, charsmax(buffer))
-			format(buffer, charsmax(buffer), "^nNAME = %s", buffer)
+			copy(buffer2, charsmax(buffer2), buffer)
+			formatex(buffer, charsmax(buffer), "^nNAME = %s", buffer2)
 			fputs(file, buffer)
 			
 			// Add cost
@@ -7504,7 +7544,7 @@ public refill_bpammo(const args[], id)
 }
 
 // Balance Teams Task
-balance_teams()
+public balance_teams()
 {
 	// Get amount of users playing
 	static iPlayersnum
@@ -7812,7 +7852,7 @@ public ambience_sound_effects(taskid)
 }
 
 // Ambience Sounds Stop Task
-ambience_sound_stop()
+public ambience_sound_stop()
 {
 	client_cmd(0, "mp3 stop; stopsound")
 }
@@ -8294,9 +8334,10 @@ replace_weapon_models(id, weaponid)
 					}
 					else
 					{
-						static clawmodel[100]
+						static clawmodel[100], clawmodel_name[100]
 						ArrayGetString(g_zclass_clawmodel, g_zombieclass[id], clawmodel, charsmax(clawmodel))
-						format(clawmodel, charsmax(clawmodel), "models/zombie_plague/%s", clawmodel)
+						copy(clawmodel_name, charsmax(clawmodel_name), clawmodel)
+						formatex(clawmodel, charsmax(clawmodel), "models/zombie_plague/%s", clawmodel_name)
 						set_pev(id, pev_viewmodel2, clawmodel)
 						set_pev(id, pev_weaponmodel2, "")
 					}
@@ -8344,7 +8385,7 @@ replace_weapon_models(id, weaponid)
 }
 
 // Reset Player Vars
-reset_vars(id, resetall)
+public reset_vars(id, resetall)
 {
 	g_zombie[id] = false
 	g_nemesis[id] = false
@@ -8448,13 +8489,13 @@ public ShowHUD(taskid)
 	{
 		// Show name, health, class, and ammo packs
 		set_hudmessage(255, 255, 255, HUD_SPECT_X, HUD_SPECT_Y, 0, 6.0, 1.1, 0.0, 0.0, -1)
-		%L: %d - %L %s - %L %dShowSyncHudMsg(ID_SHOWHUD, g_MsgSync2, "%L %s^nHP: %d - %L %s - %L %d", ID_SHOWHUD, "SPECTATING", g_playername[id], pev(id, pev_health), ID_SHOWHUD, "CLASS_CLASS", class, ID_SHOWHUD, "AMMO_PACKS1", g_ammopacks[id])
+		ShowSyncHudMsg(ID_SHOWHUD, g_MsgSync2, "%L %s^nHP: %d - %L %s - %L %d", ID_SHOWHUD, "SPECTATING", g_playername[id], pev(id, pev_health), ID_SHOWHUD, "CLASS_CLASS", class, ID_SHOWHUD, "AMMO_PACKS1", g_ammopacks[id])
 	}
 	else
 	{
 		// Show health, class and ammo packs
 		set_hudmessage(red, green, blue, HUD_STATS_X, HUD_STATS_Y, 0, 6.0, 1.1, 0.0, 0.0, -1)
-		ShowSyncHudMsg(ID_SHOWHUD, g_MsgSync, " HP: %d^n %L %s^n %L %d^n Armor: %d", get_user_health(ID_SHOWHUD), ID_SHOWHUD, "CLASS_CLASS", class_name, ID_SHOWHUD, "AMMO_PACKS1", zp_ammopacks_get(ID_SHOWHUD), get_user_armor(ID_SHOWHUD))
+		ShowSyncHudMsg(ID_SHOWHUD, g_MsgSync, "HP: %d^n%L %s^n%L %d^nArmor: %d", get_user_health(ID_SHOWHUD), ID_SHOWHUD, "CLASS_CLASS", class, ID_SHOWHUD, "AMMO_PACKS1", g_ammopacks[ID_SHOWHUD], get_user_armor(ID_SHOWHUD))
 	}
 }
 
@@ -8487,7 +8528,7 @@ public madness_over(taskid)
 }
 
 // Place user at a random spawn
-do_random_spawn(id, regularspawns = 0)
+public do_random_spawn(id, regularspawns)
 {
 	static hull, sp_index, i
 	
@@ -8552,7 +8593,7 @@ do_random_spawn(id, regularspawns = 0)
 }
 
 // Get Zombies -returns alive zombies number-
-fnGetZombies()
+public fnGetZombies()
 {
 	static iZombies, id
 	iZombies = 0
@@ -8567,7 +8608,7 @@ fnGetZombies()
 }
 
 // Get Humans -returns alive humans number-
-fnGetHumans()
+public fnGetHumans()
 {
 	static iHumans, id
 	iHumans = 0
@@ -8774,7 +8815,7 @@ fnCheckLastZombie()
 }
 
 // Save player's stats to database
-save_stats(id)
+public save_stats(id)
 {
 	// Check whether there is another record already in that slot
 	if (db_name[id][0] && !equal(g_playername[id], db_name[id]))
@@ -9529,7 +9570,7 @@ public native_register_extra_item(const name[], cost, team)
 }
 
 // Function: zp_register_extra_item (to be used within this plugin only)
-native_register_extra_item2(const name[], cost, team)
+public native_register_extra_item2(const name[], cost, team)
 {
 	// Add the item
 	ArrayPushString(g_extraitem_name, name)
@@ -10373,7 +10414,7 @@ RemoveFrags(attacker, victim)
 }
 
 // Plays a sound on clients
-PlaySound(const sound[])
+public PlaySound(const sound[])
 {
 	client_cmd(0, "spk ^"%s^"", sound)
 }
@@ -10456,7 +10497,7 @@ zp_colored_print(target, const message[], any:...)
 =================================================================================*/
 
 // Set an entity's key value (from fakemeta_util)
-stock fm_set_kvd(entity, const key[], const value[], const classname[])
+public fm_set_kvd(entity, const key[], const value[], const classname[])
 {
 	set_kvd(0, KV_ClassName, classname)
 	set_kvd(0, KV_KeyName, key)
@@ -10515,7 +10556,7 @@ stock fm_find_ent_by_owner(entity, const classname[], owner)
 }
 
 // Set player's health (from fakemeta_util)
-stock fm_set_user_health(id, health)
+public fm_set_user_health(id, health)
 {
 	(health > 0) ? set_pev(id, pev_health, float(health)) : dllfunc(DLLFunc_ClientKill, id);
 }
@@ -10555,7 +10596,7 @@ stock fm_strip_user_weapons(id)
 }
 
 // Collect random spawn points
-stock load_spawns()
+public load_spawns()
 {
 	// Check for CSDM spawns of the current map
 	new cfgdir[32], mapname[32], filepath[100], linedata[64]
@@ -10741,13 +10782,13 @@ stock fm_cs_set_user_deaths(id, value)
 }
 
 // Get User Team
-stock fm_cs_get_user_team(id)
+public fm_cs_get_user_team(id)
 {
 	return get_pdata_int(id, OFFSET_CSTEAMS, OFFSET_LINUX);
 }
 
 // Set a Player's Team
-stock fm_cs_set_user_team(id, team)
+public fm_cs_set_user_team(id, team)
 {
 	set_pdata_int(id, OFFSET_CSTEAMS, team, OFFSET_LINUX)
 }
